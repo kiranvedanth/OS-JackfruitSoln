@@ -5,115 +5,203 @@
 - Vedanth (SRN: PES1UG24CS523)
 - GitHub username: `kiranvedanth`
 
-## Project Overview
-This project implements a user-space multi-container runtime (`engine`) and a kernel memory monitor module (`monitor.ko`).
+## 🔹 Overview
 
-- `engine supervisor <base-rootfs>` starts a long-running parent supervisor.
-- CLI clients (`start`, `run`, `ps`, `logs`, `stop`) communicate with supervisor via UNIX domain socket.
-- Container stdout/stderr are captured through pipe-based producer threads and a bounded-buffer consumer logger.
-- `monitor.ko` tracks container host PIDs and enforces soft/hard RSS limits via `ioctl`.
+This project implements a lightweight container runtime in C, inspired by core Linux container principles. It demonstrates how operating system concepts like process isolation, scheduling, and kernel interaction work together in a practical system.
 
-## Build Instructions
-Run from repository root:
+### 🔧 Key Features
+
+* Multi-container execution using Linux namespaces
+* Centralized supervisor process
+* Per-container logging system
+* Kernel-level monitoring using a Loadable Kernel Module (LKM)
+* CPU vs I/O scheduling experiments
+* Clean lifecycle management (no zombie processes)
+
+---
+
+## 🔹 Build, Load, and Run Instructions
+
+### 1. Build the Project
 
 ```bash
 cd boilerplate
 make
 ```
 
-CI-safe compile only:
+---
+
+### 2. Load Kernel Module
 
 ```bash
-make -C boilerplate ci
-```
-
-## Environment Setup
-On Ubuntu 22.04/24.04 VM (Secure Boot OFF):
-
-```bash
-sudo apt update
-sudo apt install -y build-essential linux-headers-$(uname -r)
-cd boilerplate
-chmod +x environment-check.sh
-sudo ./environment-check.sh
-```
-
-## RootFS Setup
-From repository root:
-
-```bash
-mkdir -p rootfs-base
-wget https://dl-cdn.alpinelinux.org/alpine/v3.20/releases/x86_64/alpine-minirootfs-3.20.3-x86_64.tar.gz
-tar -xzf alpine-minirootfs-3.20.3-x86_64.tar.gz -C rootfs-base
-cp -a ./rootfs-base ./rootfs-alpha
-cp -a ./rootfs-base ./rootfs-beta
-```
-
-Optional: copy workloads to rootfs before launching containers:
-
-```bash
-cp boilerplate/cpu_hog ./rootfs-alpha/
-cp boilerplate/io_pulse ./rootfs-beta/
-cp boilerplate/memory_hog ./rootfs-alpha/
-```
-
-## Module + Runtime Commands
-
-### 1) Load module
-```bash
-cd boilerplate
 sudo insmod monitor.ko
-ls -l /dev/container_monitor
+sudo dmesg | tail -n 20
 ```
 
-### 2) Start supervisor
+---
+
+### 3. Start Supervisor
+
 ```bash
-cd boilerplate
 sudo ./engine supervisor ../rootfs-base
 ```
 
-### 3) Use CLI in another terminal
+---
+
+### 4. Prepare Container Root Filesystems
+
 ```bash
-cd boilerplate
-sudo ./engine start alpha ../rootfs-alpha /bin/sh --soft-mib 48 --hard-mib 80
-sudo ./engine start beta ../rootfs-beta /bin/sh --soft-mib 64 --hard-mib 96
+sudo cp -a ../rootfs-base ../rootfs-alpha
+sudo cp -a ../rootfs-base ../rootfs-beta
+```
+
+---
+
+### 5. Start Containers
+
+```bash
+sudo ./engine start alpha ../rootfs-alpha /cpu_hog
+sudo ./engine start beta ../rootfs-beta /io_pulse
+```
+
+---
+
+### 6. Inspect Containers
+
+```bash
 sudo ./engine ps
+```
+
+---
+
+### 7. View Logs
+
+```bash
 sudo ./engine logs alpha
+```
+
+---
+
+### 8. Stop Containers
+
+```bash
 sudo ./engine stop alpha
 sudo ./engine stop beta
 ```
 
-Foreground run mode:
-```bash
-sudo ./engine run alpha ../rootfs-alpha "/cpu_hog 8" --nice 5
-echo $?
-```
+---
 
-### 4) Kernel logs and unload
-```bash
-dmesg | tail -n 50
-sudo rmmod monitor
-```
+## 📸 Demo with Screenshots
 
-## CLI Contract
-Implemented commands:
+**1. Multi-container supervision**
 
-```bash
-engine supervisor <base-rootfs>
-engine start <id> <container-rootfs> <command> [--soft-mib N] [--hard-mib N] [--nice N]
-engine run   <id> <container-rootfs> <command> [--soft-mib N] [--hard-mib N] [--nice N]
-engine ps
-engine logs <id>
-engine stop <id>
-```
+![SCREENSHOT 1](https://github.com/user-attachments/assets/7f53dca6-9c14-4234-a84b-008df77b5b17)
+> The supervisor engine concurrently managing multiple active containers ('alpha' and 'beta') under a single parent process.
 
-## Current Notes
-- Per-container logs are stored under `boilerplate/logs/<id>.log`.
-- Supervisor control socket path: `/tmp/mini_runtime.sock`.
-- Soft-limit events and hard-limit kill events are visible in `dmesg`.
+---
 
-## TODO for Final Submission
-- Add all 8 required screenshots with short captions.
-- Add engineering analysis sections (isolation, lifecycle, IPC/sync, memory policy, scheduling).
-- Add design decisions + tradeoff discussion for each major subsystem.
-- Add scheduler experiment measurements and explanation.
+**2. Metadata tracking (ps)**
+
+![SCREENSHOT 2](https://github.com/user-attachments/assets/bf504535-9140-4827-a942-357da81aa328)
+> The CLI 'ps' command querying the supervisor to display dynamically tracked container metadata, including assigned process IDs (PIDs) and states.
+
+---
+
+**3. Bounded-buffer logging**
+
+![SCREENSHOT 3](https://github.com/user-attachments/assets/eeef4e16-0908-4404-bcd4-4a8d6664f02c)
+> Successful retrieval of container execution logs, verifying that the pipeline's consumer thread is actively capturing and writing standard output to disk.
+
+---
+
+**4. CLI + IPC**
+
+![SCREENSHOT 4](https://github.com/user-attachments/assets/0741d738-6702-4a32-9ca6-36c1323610a8)
+> Issuing a control command via the CLI client, which successfully communicates with the background supervisor through the Unix Domain Socket to terminate a container.
+
+---
+
+**5. Soft-limit warning**
+
+![SCREENSHOT 5](https://github.com/user-attachments/assets/94c2758c-45e1-463e-b68f-785236dfc7bc)
+> CLI execution starting container 'gamma' with strict memory boundaries to trigger kernel-level monitoring.
+
+---
+
+**6. Hard-limit enforcement**
+
+![SCREENSHOT 6](https://github.com/user-attachments/assets/c4fadb67-f9d9-4ad6-a7d3-39488987943f)
+> The custom Loadable Kernel Module detecting a memory boundary breach by container 'gamma' and successfully enforcing the constraint.
+
+---
+
+**7. Scheduling experiment**
+
+![SCREENSHOT 7](https://github.com/user-attachments/assets/5650e696-3eb9-43e3-bda7-4b730ee7fb6d)
+> Process monitor confirming that the isolated 'cpu_hog' container is effectively scheduled by the OS and saturating its allocated CPU time slice.
+
+---
+
+**8. Clean teardown**
+
+![SCREENSHOT 8](https://github.com/user-attachments/assets/8cf926a0-3a0d-4cd2-8ed0-06c5a5d1cd97)
+> The supervisor gracefully intercepting a SIGINT (^C) signal, triggering the cleanup routine to close the IPC socket and reap all child processes to prevent zombies.
+
+---
+
+## 🔹 Engineering Analysis
+
+**How The System Works**
+
+We put programs in their own private space. This makes sure they cannot see or touch other programs. We change their root folder so they are locked in.
+
+For memory limits we use a kernel module. The kernel is the deep core of the system. It can see exactly how much memory a program uses and kill it instantly if it takes too much. Normal user programs cannot do this safely.
+
+## 🔹 Design Choices
+
+**Isolation**
+Choice - We used Linux namespaces
+Good - It is very fast and lightweight
+Bad - It is not as secure as a full virtual machine
+
+**Supervisor**
+Choice - We made one main background program to manage everything
+Good - It makes tracking all the containers very simple
+Bad - If the main program breaks everything breaks
+
+**Logging**
+Choice - We used memory buffers and sockets
+Good - The main program does not freeze while waiting for logs to save to the disk
+Bad - It uses a little bit more memory to run
+
+**Kernel Monitor**
+Choice - We wrote custom core kernel code
+Good - It is the only way to perfectly stop memory leaks at the lowest level
+Bad - A mistake in the code can crash the whole computer
+
+**Scheduling Tests**
+Choice - We used simple math and sleep programs
+Good - It is very easy to see exactly how the computer shares its time
+Bad - It does not test real world messy programs
+
+## 🔹 Scheduler Test Results
+
+Here is what happened when we ran our two test programs at the same time
+
+**The CPU Hog Program**
+This program does heavy math and never stops
+The system gave it over 90 percent of the processing power
+
+**The IO Pulse Program**
+This program does very small tasks and then goes to sleep
+The system gave it almost 0 percent of the processing power
+
+**What This Proves**
+The Linux system is smart. It gives power to the programs doing hard work and takes power away from programs that are resting. This keeps the whole computer running smoothly without freezing.
+
+## 🔹 Conclusion
+
+This project builds a real working container system from scratch
+It brings together process separation and custom logging
+It also links user space programs with a real Linux kernel module
+Building this showed exactly how an operating system controls memory and processes behind the scenes
