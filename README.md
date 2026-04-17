@@ -102,14 +102,14 @@ sudo ./engine stop beta
 
 **2. Metadata tracking (ps)**
 
-![SCREENSHOT 2](https://github.com/user-attachments/assets/bf504535-9140-4827-a942-357da81aa328)
+![SCREENSHOT 2](https://github.com/user-attachments/assets/871c0cdd-09c7-4435-b577-d95940db5f9b)
 > The CLI 'ps' command querying the supervisor to display dynamically tracked container metadata, including assigned process IDs (PIDs) and states.
 
 ---
 
 **3. Bounded-buffer logging**
 
-![SCREENSHOT 3](https://github.com/user-attachments/assets/fbaf48fe-8c7d-4a65-a635-702ae5b604ca)![Uploading WhatsApp Image 2026-04-17 at 12.35.18 (1).jpeg…]()
+![SCREENSHOT 3](https://github.com/user-attachments/assets/fbaf48fe-8c7d-4a65-a635-702ae5b604ca)
 
 > Successful retrieval of container execution logs, verifying that the pipeline's consumer thread is actively capturing and writing standard output to disk.
 
@@ -138,15 +138,16 @@ sudo ./engine stop beta
 
 **7. Scheduling experiment**
 
-![SCREENSHOT 7](https://github.com/user-attachments/assets/5650e696-3eb9-43e3-bda7-4b730ee7fb6d)
+![SCREENSHOT 7.1](https://github.com/user-attachments/assets/e85b731d-4a01-44cd-b883-f297f77e6e1c) 
+![SCREENSHOT 7.2](https://github.com/user-attachments/assets/8354ad7a-198d-4edf-b619-5fce2553b653)
 > Process monitor confirming that the isolated 'cpu_hog' container is effectively scheduled by the OS and saturating its allocated CPU time slice.
 
 ---
 
 **8. Clean teardown**
 
-![SCREENSHOT 8](https://github.com/user-attachments/assets/8cf926a0-3a0d-4cd2-8ed0-06c5a5d1cd97)
-> The supervisor gracefully intercepting a SIGINT (^C) signal, triggering the cleanup routine to close the IPC socket and reap all child processes to prevent zombies.
+![SCREENSHOT 8](https://github.com/user-attachments/assets/25549ca4-a638-4cd1-8d1e-4820be5a03c9)
+> The supervisor gracefully intercepting a SIGKILL signal, triggering the cleanup routine to close the IPC socket and reap all child processes to prevent zombies.
 
 ---
 
@@ -206,6 +207,4 @@ This project builds a real working container system from scratch
 It brings together process separation and custom logging
 It also links user space programs with a real Linux kernel module
 Building this showed exactly how an operating system controls memory and processes behind the scenes
-
-
 
