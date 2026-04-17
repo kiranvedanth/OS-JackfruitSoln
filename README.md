@@ -1,111 +1,119 @@
-# Multi-Container Runtime
+# Multi-Container Runtime with Memory Monitor
 
-A lightweight Linux container runtime in C with a long-running supervisor and a kernel-space memory monitor.
+## Team Information
+- Vaibhav (SRN: PES1UG24CS640)
+- Vedanth (SRN: PES1UG24CS523)
+- GitHub username: `kiranvedanth`
 
-Read [`project-guide.md`](project-guide.md) for the full project specification.
+## Project Overview
+This project implements a user-space multi-container runtime (`engine`) and a kernel memory monitor module (`monitor.ko`).
 
----
+- `engine supervisor <base-rootfs>` starts a long-running parent supervisor.
+- CLI clients (`start`, `run`, `ps`, `logs`, `stop`) communicate with supervisor via UNIX domain socket.
+- Container stdout/stderr are captured through pipe-based producer threads and a bounded-buffer consumer logger.
+- `monitor.ko` tracks container host PIDs and enforces soft/hard RSS limits via `ioctl`.
 
-## Getting Started
-
-### 1. Fork the Repository
-
-1. Go to [github.com/shivangjhalani/OS-Jackfruit](https://github.com/shivangjhalani/OS-Jackfruit)
-2. Click **Fork** (top-right)
-3. Clone your fork:
-
-```bash
-git clone https://github.com/<your-username>/OS-Jackfruit.git
-cd OS-Jackfruit
-```
-
-### 2. Set Up Your VM
-
-You need an **Ubuntu 22.04 or 24.04** VM with **Secure Boot OFF**. WSL will not work.
-
-Install dependencies:
-
-```bash
-sudo apt update
-sudo apt install -y build-essential linux-headers-$(uname -r)
-```
-
-### 3. Run the Environment Check
-
-```bash
-cd boilerplate
-chmod +x environment-check.sh
-sudo ./environment-check.sh
-```
-
-Fix any issues reported before moving on.
-
-### 4. Prepare the Root Filesystem
-
-```bash
-mkdir rootfs-base
-wget https://dl-cdn.alpinelinux.org/alpine/v3.20/releases/x86_64/alpine-minirootfs-3.20.3-x86_64.tar.gz
-tar -xzf alpine-minirootfs-3.20.3-x86_64.tar.gz -C rootfs-base
-
-# Make one writable copy per container you plan to run
-cp -a ./rootfs-base ./rootfs-alpha
-cp -a ./rootfs-base ./rootfs-beta
-```
-
-Do not commit `rootfs-base/` or `rootfs-*` directories to your repository.
-
-### 5. Understand the Boilerplate
-
-The `boilerplate/` folder contains starter files:
-
-| File                   | Purpose                                             |
-| ---------------------- | --------------------------------------------------- |
-| `engine.c`             | User-space runtime and supervisor skeleton          |
-| `monitor.c`            | Kernel module skeleton                              |
-| `monitor_ioctl.h`      | Shared ioctl command definitions                    |
-| `Makefile`             | Build targets for both user-space and kernel module |
-| `cpu_hog.c`            | CPU-bound test workload                             |
-| `io_pulse.c`           | I/O-bound test workload                             |
-| `memory_hog.c`         | Memory-consuming test workload                      |
-| `environment-check.sh` | VM environment preflight check                      |
-
-Use these as your starting point. You are free to restructure the repository however you want — the submission requirements are listed in the project guide.
-
-### 6. Build and Verify
+## Build Instructions
+Run from repository root:
 
 ```bash
 cd boilerplate
 make
 ```
 
-If this compiles without errors, your environment is ready.
-
-### 7. GitHub Actions Smoke Check
-
-Your fork will inherit a minimal GitHub Actions workflow from this repository.
-
-That workflow only performs CI-safe checks:
-
-- `make -C boilerplate ci`
-- user-space binary compilation (`engine`, `memory_hog`, `cpu_hog`, `io_pulse`)
-- `./boilerplate/engine` with no arguments must print usage and exit with a non-zero status
-
-The CI-safe build command is:
+CI-safe compile only:
 
 ```bash
 make -C boilerplate ci
 ```
 
-This smoke check does not test kernel-module loading, supervisor runtime behavior, or container execution.
+## Environment Setup
+On Ubuntu 22.04/24.04 VM (Secure Boot OFF):
 
----
+```bash
+sudo apt update
+sudo apt install -y build-essential linux-headers-$(uname -r)
+cd boilerplate
+chmod +x environment-check.sh
+sudo ./environment-check.sh
+```
 
-## What to Do Next
+## RootFS Setup
+From repository root:
 
-Read [`project-guide.md`](project-guide.md) end to end. It contains:
+```bash
+mkdir -p rootfs-base
+wget https://dl-cdn.alpinelinux.org/alpine/v3.20/releases/x86_64/alpine-minirootfs-3.20.3-x86_64.tar.gz
+tar -xzf alpine-minirootfs-3.20.3-x86_64.tar.gz -C rootfs-base
+cp -a ./rootfs-base ./rootfs-alpha
+cp -a ./rootfs-base ./rootfs-beta
+```
 
-- The six implementation tasks (multi-container runtime, CLI, logging, kernel monitor, scheduling experiments, cleanup)
-- The engineering analysis you must write
-- The exact submission requirements, including what your `README.md` must contain (screenshots, analysis, design decisions)
+Optional: copy workloads to rootfs before launching containers:
 
-Your fork's `README.md` should be replaced with your own project documentation as described in the submission package section of the project guide. (As in get rid of all the above content and replace with your README.md)
+```bash
+cp boilerplate/cpu_hog ./rootfs-alpha/
+cp boilerplate/io_pulse ./rootfs-beta/
+cp boilerplate/memory_hog ./rootfs-alpha/
+```
+
+## Module + Runtime Commands
+
+### 1) Load module
+```bash
+cd boilerplate
+sudo insmod monitor.ko
+ls -l /dev/container_monitor
+```
+
+### 2) Start supervisor
+```bash
+cd boilerplate
+sudo ./engine supervisor ../rootfs-base
+```
+
+### 3) Use CLI in another terminal
+```bash
+cd boilerplate
+sudo ./engine start alpha ../rootfs-alpha /bin/sh --soft-mib 48 --hard-mib 80
+sudo ./engine start beta ../rootfs-beta /bin/sh --soft-mib 64 --hard-mib 96
+sudo ./engine ps
+sudo ./engine logs alpha
+sudo ./engine stop alpha
+sudo ./engine stop beta
+```
+
+Foreground run mode:
+```bash
+sudo ./engine run alpha ../rootfs-alpha "/cpu_hog 8" --nice 5
+echo $?
+```
+
+### 4) Kernel logs and unload
+```bash
+dmesg | tail -n 50
+sudo rmmod monitor
+```
+
+## CLI Contract
+Implemented commands:
+
+```bash
+engine supervisor <base-rootfs>
+engine start <id> <container-rootfs> <command> [--soft-mib N] [--hard-mib N] [--nice N]
+engine run   <id> <container-rootfs> <command> [--soft-mib N] [--hard-mib N] [--nice N]
+engine ps
+engine logs <id>
+engine stop <id>
+```
+
+## Current Notes
+- Per-container logs are stored under `boilerplate/logs/<id>.log`.
+- Supervisor control socket path: `/tmp/mini_runtime.sock`.
+- Soft-limit events and hard-limit kill events are visible in `dmesg`.
+
+## TODO for Final Submission
+- Add all 8 required screenshots with short captions.
+- Add engineering analysis sections (isolation, lifecycle, IPC/sync, memory policy, scheduling).
+- Add design decisions + tradeoff discussion for each major subsystem.
+- Add scheduler experiment measurements and explanation.
