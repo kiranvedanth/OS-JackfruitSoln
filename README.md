@@ -95,7 +95,7 @@ sudo ./engine stop beta
 
 **1. Multi-container supervision**
 
-![SCREENSHOT 1](https://github.com/user-attachments/assets/7f53dca6-9c14-4234-a84b-008df77b5b17)
+![SCREENSHOT 1](https://github.com/user-attachments/assets/3f087d08-283e-491d-a640-9da8dda9529a)
 > The supervisor engine concurrently managing multiple active containers ('alpha' and 'beta') under a single parent process.
 
 ---
@@ -130,7 +130,7 @@ sudo ./engine stop beta
 
 **6. Hard-limit enforcement**
 
-![SCREENSHOT 6](https://github.com/user-attachments/assets/c4fadb67-f9d9-4ad6-a7d3-39488987943f)
+![SCREENSHOT 6](https://github.com/user-attachments/assets/3f087d08-283e-491d-a640-9da8dda9529a)
 > The custom Loadable Kernel Module detecting a memory boundary breach by container 'gamma' and successfully enforcing the constraint.
 
 ---
@@ -205,3 +205,5 @@ This project builds a real working container system from scratch
 It brings together process separation and custom logging
 It also links user space programs with a real Linux kernel module
 Building this showed exactly how an operating system controls memory and processes behind the scenes
+
+
