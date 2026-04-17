@@ -109,7 +109,8 @@ sudo ./engine stop beta
 
 **3. Bounded-buffer logging**
 
-![SCREENSHOT 3](https://github.com/user-attachments/assets/eeef4e16-0908-4404-bcd4-4a8d6664f02c)
+![SCREENSHOT 3](https://github.com/user-attachments/assets/fbaf48fe-8c7d-4a65-a635-702ae5b604ca)![Uploading WhatsApp Image 2026-04-17 at 12.35.18 (1).jpeg…]()
+
 > Successful retrieval of container execution logs, verifying that the pipeline's consumer thread is actively capturing and writing standard output to disk.
 
 ---
@@ -123,7 +124,7 @@ sudo ./engine stop beta
 
 **5. Soft-limit warning**
 
-![SCREENSHOT 5](https://github.com/user-attachments/assets/94c2758c-45e1-463e-b68f-785236dfc7bc)
+![SCREENSHOT 5](https://github.com/user-attachments/assets/8d21b5ca-1650-419d-a9b5-3261f383ce99)
 > CLI execution starting container 'gamma' with strict memory boundaries to trigger kernel-level monitoring.
 
 ---
@@ -205,5 +206,6 @@ This project builds a real working container system from scratch
 It brings together process separation and custom logging
 It also links user space programs with a real Linux kernel module
 Building this showed exactly how an operating system controls memory and processes behind the scenes
+
 
 
