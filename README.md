@@ -95,7 +95,7 @@ sudo ./engine stop beta
 
 **1. Multi-container supervision**
 
-![SCREENSHOT 1](https://github.com/user-attachments/assets/3f087d08-283e-491d-a640-9da8dda9529a)
+![SCREENSHOT 1](https://github.com/user-attachments/assets/ab58a1a7-0a60-42ae-9ae8-20ce173fbb8d)
 > The supervisor engine concurrently managing multiple active containers ('alpha' and 'beta') under a single parent process.
 
 ---
@@ -117,7 +117,7 @@ sudo ./engine stop beta
 
 **4. CLI + IPC**
 
-![SCREENSHOT 4](https://github.com/user-attachments/assets/0741d738-6702-4a32-9ca6-36c1323610a8)
+![SCREENSHOT 4](https://github.com/user-attachments/assets/83fd9e91-ea18-40c6-9fcd-3dcaef871a67)
 > Issuing a control command via the CLI client, which successfully communicates with the background supervisor through the Unix Domain Socket to terminate a container.
 
 ---
@@ -145,8 +145,10 @@ sudo ./engine stop beta
 ---
 
 **8. Clean teardown**
-
-![SCREENSHOT 8](https://github.com/user-attachments/assets/25549ca4-a638-4cd1-8d1e-4820be5a03c9)
+ 
+![SCREENSHOT 8.1](https://github.com/user-attachments/assets/ff79e45b-3a01-4daa-92b2-ce7e6e871048)
+![SCREENSHOT 8.2](https://github.com/user-attachments/assets/2fa604b3-22c0-4cfe-bb81-26f9b6914704)
+![SCREENSHOT 8.3](https://github.com/user-attachments/assets/14eb5062-650a-46d2-87cc-b17feb4f9242)
 > The supervisor gracefully intercepting a SIGKILL signal, triggering the cleanup routine to close the IPC socket and reap all child processes to prevent zombies.
 
 ---
@@ -207,4 +209,6 @@ This project builds a real working container system from scratch
 It brings together process separation and custom logging
 It also links user space programs with a real Linux kernel module
 Building this showed exactly how an operating system controls memory and processes behind the scenes
+
+
 
